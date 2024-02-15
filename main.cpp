@@ -1,10 +1,12 @@
 #include <iostream>
 #include <fstream>
+#include <string>
 #include <curl/curl.h>
+#include <vector>
 #define lmax 100
 
 struct TLE{
-    char name[lmax]; //Название спутника
+    std::string name; //Название спутника
     int stringNumber;   //Номер строки	(1)
     int NORADNumber;    //Номер спутника в базе данных NORAD	(25544)
     char classification;    //Классификация (U=Unclassified — не секретный)	(U)
@@ -34,7 +36,7 @@ size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* out
     return totalSize;
 }
 
-void writeInFile(char url[]){
+void writeInFile(std::string url){
     CURL* curl;
     CURLcode res;
 
@@ -73,14 +75,43 @@ void writeInFile(char url[]){
     curl_global_cleanup();
 }
 
-void readFromFile(char fileName[]){
+void readFromFile(std::string fileName, std::vector<TLE>& data){
+    int i = 0;
+    std::ifstream inputFile(fileName);
+    if (inputFile.is_open()) {
+        // Создаем строку для хранения считанной строки
+        std::string line;
+        struct TLE newTLE;
+        // Считываем данные построчно из файла
+        while (std::getline(inputFile, line)) {
+            if(i %3 == 0){
+                struct TLE newTLE;
+                newTLE.name = line;
+                data.push_back(newTLE);
+                std::cout << newTLE.name << std::endl;
+            }
+            if(i%3 == 1){
+                newTLE.stringNumber = line[0];
 
+            }
+            if(i%3 == 2){
+
+            }
+            i++;
+        }
+
+        // Закрываем файл
+        inputFile.close();
+    } else {
+        std::cerr << "Unable to open the file." << std::endl;
+    }
 }
 
 int main() {
-    char url[] = "https://celestrak.org/NORAD/elements/gp.php?GROUP=last-30-days&FORMAT=tle";
+    std::vector<TLE> data;
+    std::string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=last-30-days&FORMAT=tle";
     writeInFile(url);
-
+    readFromFile("output.txt", data);
 
 
     return 0;
