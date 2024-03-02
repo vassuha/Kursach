@@ -45,7 +45,7 @@ void writeInFile(std::string url){
 
     if(curl) {
         // Укажите URL вашего веб-сайта
-        curl_easy_setopt(curl, CURLOPT_URL, url);
+        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 
         // Отключите проверку SSL-сертификата
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
@@ -56,7 +56,10 @@ void writeInFile(std::string url){
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
 
         // Выполните HTTP-запрос
+        std::cout << "Before curl_easy_perform" << std::endl;
         res = curl_easy_perform(curl);
+        std::cout << "After curl_easy_perform" << std::endl;
+
 
         // Проверка на ошибки
         if(res != CURLE_OK)
@@ -110,6 +113,9 @@ void readFromFile(std::string fileName, std::vector<TLE>& data){
 int main() {
     std::vector<TLE> data;
     std::string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=last-30-days&FORMAT=tle";
+
+    //std::string url = "https://www.google.com";
+    //char url[] = "http://r4uab.ru/satonline.txt";
     writeInFile(url);
     readFromFile("output.txt", data);
 
