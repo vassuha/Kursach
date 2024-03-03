@@ -3,7 +3,11 @@
 #include <string>
 #include <curl/curl.h>
 #include <vector>
+#include <cassert>
+#include <perturb/perturb.hpp>
 #define lmax 100
+
+using namespace perturb;
 
 struct TLE{
     std::string name; //Название спутника
@@ -36,7 +40,7 @@ size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* out
     return totalSize;
 }
 
-void writeInFile(std::string url){
+void writeInFile(std::string url, std::string outputFile){
     CURL* curl;
     CURLcode res;
 
@@ -55,10 +59,8 @@ void writeInFile(std::string url){
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
 
-        // Выполните HTTP-запрос
-        std::cout << "Before curl_easy_perform" << std::endl;
+
         res = curl_easy_perform(curl);
-        std::cout << "After curl_easy_perform" << std::endl;
 
 
         // Проверка на ошибки
@@ -66,7 +68,7 @@ void writeInFile(std::string url){
             fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
         else {
             // Сохраните данные в текстовый файл
-            std::ofstream outFile("output.txt");
+            std::ofstream outFile(outputFile.c_str());
             outFile << response;
             outFile.close();
         }
@@ -110,15 +112,43 @@ void readFromFile(std::string fileName, std::vector<TLE>& data){
     }
 }
 
+void ISS_test(void){
+    // Let try simulating the orbit of the International Space Station
+    // Got TLE from Celestrak sometime around 2022-03-12
+    std::string ISS_TLE_1 = "1 25544U 98067A   22071.78032407  .00021395  00000-0  39008-3 0  9996";
+    std::string ISS_TLE_2 = "2 25544  51.6424  94.0370 0004047 256.5103  89.8846 15.49386383330227";
+
+    // Create and initialize a satellite object from the TLE
+    auto sat = Satellite::from_tle(ISS_TLE_1, ISS_TLE_2);
+    assert(sat.last_error() == Sgp4Error::NONE);
+    assert(sat.epoch().to_datetime().day == 12);
+
+    // Let's see what the ISS is doing on Pi Day
+    const auto t = JulianDate(DateTime { 2022, 3, 14, 1, 59, 26.535 });
+    const double delta_days = t - sat.epoch();
+    assert(1 < delta_days && delta_days < 3);  // It's been ~2 days since the epoch
+
+    // Calculate the position and velocity at the chosen time
+    StateVector sv;
+    const auto err = sat.propagate(t, sv);
+    assert(err == Sgp4Error::NONE);
+    const auto &pos = sv.position, &vel = sv.velocity;
+
+    // Вывод: МКС движется довольно быстро (~ 8 км / с)
+    std::cout << "Position [km]: { " << pos[0] << ", " << pos[1] << ", " << pos[2] << " }\n";
+    std::cout << "Speed [km/s]: { " << vel[0] << ", " << vel[1] << ", " << vel[2] << " }\n";
+}
+
 int main() {
     std::vector<TLE> data;
     std::string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=last-30-days&FORMAT=tle";
 
     //std::string url = "https://www.google.com";
     //char url[] = "http://r4uab.ru/satonline.txt";
-    writeInFile(url);
+    writeInFile(url, "output.txt");
     readFromFile("output.txt", data);
 
+    ISS_test();
 
     return 0;
 }
