@@ -31,6 +31,5 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(perturb)
 
-
 # Link perturb into your project
 target_link_libraries(Kursach perturb)
