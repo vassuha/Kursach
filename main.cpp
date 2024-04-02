@@ -23,16 +23,23 @@ void now(int &year, int &month, int &day, int &hour, int &min, int &sec) {
     auto currentTimePoint = std::chrono::system_clock::now();
     std::time_t currentTime = std::chrono::system_clock::to_time_t(currentTimePoint);
 
-    // Преобразуем время в структуру tm
+    // Преобразование времени в структуру tm
     std::tm *localTime = std::localtime(&currentTime);
 
-    // Извлекаем численные значения года, месяца, дня, и т.д.
     year = localTime->tm_year + 1900;
     month = localTime->tm_mon + 1;
     day = localTime->tm_mday;
-    hour = localTime->tm_hour;
+    hour = localTime->tm_hour-3;
     min = localTime->tm_min;
     sec = localTime->tm_sec;
+
+    //Отладка!!!!!!!!!
+//    year = 2000;
+//    month = 5;
+//    day = 3;
+//    hour-=3;
+//    min =10;
+//    sec = 0;
 }
 
 double GMST(void){
@@ -51,23 +58,49 @@ double GMST(void){
     return t;
 }
 
+double GMST2(double JD) {
+    int year, month, day, hour, min, sec;
+    now(year, month, day, hour, min, sec);
+    double M = ((((hour-3)*3600.0) + (min*60.0) + sec)/(12.0*3600.0));
+    double d = JD - 2451545.0;
+    double T = d/36525;
+    double S=1.7533685592 + 0.0172027918051 * d + 6.2831853072 * M + 6.7707139 * 0.000001 * T*T - 4.50876 * 0.0000000001 * T*T*T;
+    return S;
+}
+
+
+void ECEF2LLA(double x, double y, double z, double &latitude, double &longitude) {
+    latitude = atan(z/(sqrt(x*x + y*y)));
+    longitude = atan(y/x);
+    if(y<0 && x< 0){
+        longitude-=PI;
+    }
+    if(y>0 && x< 0){
+        longitude+=PI;
+    }
+}
+
+void LLA2ECEF(double &x, double &y, double &z, double latitude, double longitude, double r) {
+    x = r*cos(latitude)*cos(longitude);
+    y = r*cos(latitude)*sin(longitude);
+    z = r*sin(latitude);
+}
+
 size_t WriteCallback(void* contents, size_t size, size_t nmemb, string* output) {
     size_t totalSize = size * nmemb;
     output->append(static_cast<char*>(contents), totalSize);
     return totalSize;
 }
 
-void ECI2ECEF(double x, double y, double z,double t, double &X, double &Y, double &Z, bool CorV){
+void ECI2ECEF(double x, double y, double z,double S, double &X, double &Y, double &Z, bool CorV){
     double W = 0.000072921151467;
 
-    double s_zv  = t;
-    double cos_s = cos(s_zv);
-    double sin_s = sin(s_zv);
+    double cos_s = cos(S);
+    double sin_s = sin(S);
 
     X =  x * cos_s  + y * sin_s;
     Y = -x * sin_s  + y * cos_s;
     Z = z;
-
 
     if(CorV == true)
     {
@@ -113,36 +146,34 @@ void TLE_decoding(string ISS_TLE_1, string ISS_TLE_2 ){
     assert(sat.last_error() == Sgp4Error::NONE);
 
     int year, month, day, hour, minute, second;
-
     now(year, month, day, hour, minute, second);
-    /*
-    cout << "Enter date and time (year month day hour minute second): ";
-    cin >> year >> month >> day >> hour >> minute >> second;
-    */
 
     const auto t = JulianDate(DateTime { year, month, day, hour, minute, second });
     const double delta_days = t - sat.epoch();
-
     StateVector sv;
     const auto err = sat.propagate(t, sv);
-    const auto &pos = sv.position, &vel = sv.velocity;
+    const auto &ECI_pos = sv.position, &vel = sv.velocity;
 
     double distant;
-    distant = sqrt( pos[0] * pos[0] + pos[1] * pos[1] + pos[2] * pos[2]);
-    cout << "Position in  ECI [km]: { " << pos[0] << ", " << pos[1] << ", " << pos[2] << " }\n";
+    distant = sqrt( ECI_pos[0] * ECI_pos[0] + ECI_pos[1] * ECI_pos[1] + ECI_pos[2] * ECI_pos[2]);
 
     double X, Y, Z;
-    double t1 = GMST();
-    ECI2ECEF(pos[0], pos[1], pos[2], t1, X, Y, Z, false);
+    double sideralT = GMST();
+    std::cout << "GMST= " << sideralT << std::endl;
+    cout << "Position in  ECI [km]: { " << ECI_pos[0] << ", " << ECI_pos[1] << ", " << ECI_pos[2] << " }\n";
+
+    ECI2ECEF(ECI_pos[0], ECI_pos[1], ECI_pos[2], sideralT, X, Y, Z, false);
     cout << "Position in ECEF [km]: { " << X << ", " << Y << ", " << Z << " }\n";
 
-    cout << "distance to the ground: " << distant - 6378 << " km" << "\n";
+    double latitude, longitude;
+    ECEF2LLA(X, Y, Z, latitude, longitude);
+
+    cout << "Position in LLA [deg]: { " << latitude*180/PI << ", " << longitude*180/PI << " }\n";
+
+    cout << "Distance to the ground: " << distant - 6378 << " km" << "\n";
     //cout << "Speed in ECI [km/s]: { " << vel[0] << ", " << vel[1] << ", " << vel[2] << " }\n";
     //cout << "speed (abs): " << speed << "\n";
 
-    //коэффициент, преобразующий вектор спутника в вектор подспутниковой проекции на землю
-    double k;
-    k=sqrt((6378*6378)/((X*X)+(Y*Y)+(Z*Z)));
 }
 
 void readFromFile(string fileName, vector<TLE>& data){
@@ -160,8 +191,7 @@ void readFromFile(string fileName, vector<TLE>& data){
 
             // Вывод данных после считывания
             cout << endl;
-            cout << "Read TLE:" << endl;
-            cout << "Satellite Name: " << newTLE.satelliteName << endl;
+            cout << newTLE.satelliteName << endl;
             cout << "Line 1: " << newTLE.line1 << endl;
             cout << "Line 2: " << newTLE.line2 << endl;
 
@@ -177,14 +207,19 @@ void readFromFile(string fileName, vector<TLE>& data){
 
 int main() {
     vector<TLE> data;
-    //Раскомментировать нужное
+
+    //Раскомментировать нужное:
     //Запуски за последние 30 дней
     //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=last-30-days&FORMAT=tle";
     //Космические станции
-    string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle";
+    //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle";
+    //GOES
+    //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=goes&FORMAT=tle";
+    //IRIDIUM
+    string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=iridium-33-debris&FORMAT=tle";
 
-    writeInFile(url, "output.txt");
-    readFromFile("output.txt", data);
+    //writeInFile(url, "output.txt");
+    readFromFile("Space_Stations.txt", data);
 
     return 0;
 }

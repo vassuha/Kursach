@@ -17,7 +17,7 @@ add_executable(Kursach main.cpp)
 # Линковка с библиотекой cURL
 target_link_libraries(Kursach ${CURL_LIBRARIES})
 
-target_include_directories(Kursach PRIVATE ${CMAKE_SOURCE_DIR}/sgp4)
+#target_include_directories(Kursach PRIVATE ${CMAKE_SOURCE_DIR}/sgp4)
 
 #target_link_libraries(Kursach PRIVATE path/to/sgp4/build/sgp4.lib)
 
@@ -28,6 +28,7 @@ FetchContent_Declare(
         perturb
         GIT_REPOSITORY "https://github.com/gunvirranu/perturb"
 )
+
 
 FetchContent_MakeAvailable(perturb)
 
