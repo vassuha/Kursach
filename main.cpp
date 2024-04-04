@@ -141,14 +141,21 @@ void writeInFile(string url, string outputFile){
     curl_global_cleanup();
 }
 
+double distanceToMIEM(double x, double y, double z){
+    double x_MIEM = 2847.32, y_MIEM = 2177.72, z_MIEM = 5275.34;
+
+    double r=sqrt((x_MIEM-x)*(x_MIEM-x) + (y_MIEM-y)*(y_MIEM-y) + (z_MIEM-z)*(z_MIEM-z));
+    return r;
+
+}
+
 void TLE_decoding(string ISS_TLE_1, string ISS_TLE_2 ){
     auto sat = Satellite::from_tle(ISS_TLE_1, ISS_TLE_2);
     assert(sat.last_error() == Sgp4Error::NONE);
 
     int year, month, day, hour, minute, second;
     now(year, month, day, hour, minute, second);
-
-    const auto t = JulianDate(DateTime { year, month, day, hour, minute, second });
+    const auto t = JulianDate(DateTime { year, month, day, hour, minute, (double)second });
     const double delta_days = t - sat.epoch();
     StateVector sv;
     const auto err = sat.propagate(t, sv);
@@ -173,6 +180,8 @@ void TLE_decoding(string ISS_TLE_1, string ISS_TLE_2 ){
     cout << "Distance to the ground: " << distant - 6378 << " km" << "\n";
     //cout << "Speed in ECI [km/s]: { " << vel[0] << ", " << vel[1] << ", " << vel[2] << " }\n";
     //cout << "speed (abs): " << speed << "\n";
+    double r = distanceToMIEM(X, Y, Z);
+    cout << "Distance to MIEM = " << r << "km" << endl;
 
 }
 
@@ -194,7 +203,6 @@ void readFromFile(string fileName, vector<TLE>& data){
             cout << newTLE.satelliteName << endl;
             cout << "Line 1: " << newTLE.line1 << endl;
             cout << "Line 2: " << newTLE.line2 << endl;
-
 
             // Вызов функции TLE_decoding с TLE-данными
             TLE_decoding(newTLE.line1, newTLE.line2);
