@@ -1,0 +1,253 @@
+[33mcommit 93fb6f2b7bfda4aee99a51c8a56b852397bc6b90[m[33m ([m[1;36mHEAD -> [m[1;32mmaster[m[33m, [m[1;31morigin/staske'sTests[m[33m, [m[1;32mstaske'sTests[m[33m)[m
+Author: vassuha <vasuharn@gmail.com>
+Date:   Wed Mar 13 16:08:59 2024 +0300
+
+    Перевод в систему ECEF
+
+[1mdiff --git a/main.cpp b/main.cpp[m
+[1mindex 4da197a..0b69299 100644[m
+[1m--- a/main.cpp[m
+[1m+++ b/main.cpp[m
+[36m@@ -6,23 +6,78 @@[m
+ #include <cassert>[m
+ #include <perturb/perturb.hpp>[m
+ #include <cmath>[m
+[31m-#define lmax 100[m
+[32m+[m[32m#include <chrono>[m
+ [m
+[32m+[m[32m#define PI 3.141592653589793[m
+[32m+[m
+[32m+[m
+[32m+[m[32musing namespace std;[m
+ using namespace perturb;[m
+ [m
+ struct TLE {[m
+[31m-    std::string satelliteName;[m
+[31m-    std::string line1;[m
+[31m-    std::string line2;[m
+[32m+[m[32m    string satelliteName;[m
+[32m+[m[32m    string line1;[m
+[32m+[m[32m    string line2;[m
+ };[m
+ [m
+[31m-size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* output) {[m
+[32m+[m[32mvoid now(int &year, int &month, int &day, int &hour, int &min, int &sec) {[m
+[32m+[m[32m    auto currentTimePoint = std::chrono::system_clock::now();[m
+[32m+[m[32m    std::time_t currentTime = std::chrono::system_clock::to_time_t(currentTimePoint);[m
+[32m+[m
+[32m+[m[32m    // Преобразуем время в структуру tm[m
+[32m+[m[32m    std::tm *localTime = std::localtime(&currentTime);[m
+[32m+[m
+[32m+[m[32m    // Извлекаем численные значения года, месяца, дня, и т.д.[m
+[32m+[m[32m    year = localTime->tm_year + 1900;[m
+[32m+[m[32m    month = localTime->tm_mon + 1;[m
+[32m+[m[32m    day = localTime->tm_mday;[m
+[32m+[m[32m    hour = localTime->tm_hour;[m
+[32m+[m[32m    min = localTime->tm_min;[m
+[32m+[m[32m    sec = localTime->tm_sec;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mdouble GMST(void){[m
+[32m+[m[32m    int year, month, day, hour, min, sec;[m
+[32m+[m[32m    now(year, month, day, hour, min, sec);[m
+[32m+[m
+[32m+[m[32m    double dwhole = 367.0*year-int(7*(year+int((month+9)/12))/4)+int(275*month/9)+day-730531.5;[m
+[32m+[m[32m    double dfrac = (hour+min/60.0+sec/3600.0)/24.0;[m
+[32m+[m[32m    double d = dwhole+dfrac;[m
+[32m+[m
+[32m+[m[32m    double GMST = 281.46061837+360.98564736629*d;[m
+[32m+[m[32m    GMST = GMST-360*int(GMST/360);[m
+[32m+[m[32m    if(GMST < 0)   GMST = 360.0 + GMST;[m
+[32m+[m
+[32m+[m[32m    double t = GMST*PI/180.0;[m
+[32m+[m[32m    return t;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32msize_t WriteCallback(void* contents, size_t size, size_t nmemb, string* output) {[m
+     size_t totalSize = size * nmemb;[m
+     output->append(static_cast<char*>(contents), totalSize);[m
+     return totalSize;[m
+ }[m
+ [m
+[31m-void writeInFile(std::string url, std::string outputFile){[m
+[32m+[m[32mvoid ECI2ECEF(double x, double y, double z,double t, double &X, double &Y, double &Z, bool CorV){[m
+[32m+[m[32m    double W = 0.000072921151467;[m
+[32m+[m
+[32m+[m[32m    double s_zv  = t;[m
+[32m+[m[32m    double cos_s = cos(s_zv);[m
+[32m+[m[32m    double sin_s = sin(s_zv);[m
+[32m+[m
+[32m+[m[32m    X =  x * cos_s  + y * sin_s;[m
+[32m+[m[32m    Y = -x * sin_s  + y * cos_s;[m
+[32m+[m[32m    Z = z;[m
+[32m+[m
+[32m+[m
+[32m+[m[32m    if(CorV == true)[m
+[32m+[m[32m    {[m
+[32m+[m[32m        X = X + W * Y;[m
+[32m+[m[32m        Y = Y - W * X;[m
+[32m+[m[32m    }[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mvoid writeInFile(string url, string outputFile){[m
+     CURL* curl;[m
+     CURLcode res;[m
+ [m
+[36m@@ -30,78 +85,74 @@[m [mvoid writeInFile(std::string url, std::string outputFile){[m
+     curl = curl_easy_init();[m
+ [m
+     if(curl) {[m
+[31m-        // Укажите URL вашего веб-сайта[m
+         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());[m
+ [m
+[31m-        // Отключите проверку SSL-сертификата[m
+[32m+[m[32m        // Отключение проверки SSL-сертификата[m
+         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);[m
+ [m
+[31m-        // Укажите функцию обратного вызова для записи данных в переменную[m
+[31m-        std::string response;[m
+[32m+[m[32m        string response;[m
+         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);[m
+         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);[m
+ [m
+[31m-[m
+         res = curl_easy_perform(curl);[m
+ [m
+[31m-[m
+[31m-        // Проверка на ошибки[m
+         if(res != CURLE_OK)[m
+             fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));[m
+         else {[m
+[31m-            // Сохраните данные в текстовый файл[m
+[31m-            std::ofstream outFile(outputFile.c_str());[m
+[32m+[m[32m            ofstream outFile(outputFile.c_str());[m
+             outFile << response;[m
+             outFile.close();[m
+         }[m
+ [m
+[31m-        // Освободите ресурсы[m
+         curl_easy_cleanup(curl);[m
+     }[m
+[31m-[m
+     curl_global_cleanup();[m
+ }[m
+ [m
+[31m-[m
+[31m-void ISS_test(std::string ISS_TLE_1, std::string ISS_TLE_2 ){[m
+[31m-    // Let try simulating the orbit of the International Space Station[m
+[31m-    // Got TLE from Celestrak sometime around 2022-03-12";[m
+[31m-[m
+[31m-    // Create and initialize a satellite object from the TLE[m
+[32m+[m[32mvoid TLE_decoding(string ISS_TLE_1, string ISS_TLE_2 ){[m
+     auto sat = Satellite::from_tle(ISS_TLE_1, ISS_TLE_2);[m
+     assert(sat.last_error() == Sgp4Error::NONE);[m
+ [m
+[31m-    // Prompt the user to enter date and time[m
+[31m-    int year, month, day, hour, minute;[m
+[31m-    double second;[m
+[31m-    std::cout << "Enter date and time (year month day hour minute second): ";[m
+[31m-    std::cin >> year >> month >> day >> hour >> minute >> second;[m
+[32m+[m[32m    int year, month, day, hour, minute, second;[m
+[32m+[m
+[32m+[m[32m    now(year, month, day, hour, minute, second);[m
+[32m+[m[32m    /*[m
+[32m+[m[32m    cout << "Enter date and time (year month day hour minute second): ";[m
+[32m+[m[32m    cin >> year >> month >> day >> hour >> minute >> second;[m
+[32m+[m[32m    */[m
+ [m
+[31m-    // Let's see what the ISS is doing at the specified date and time[m
+     const auto t = JulianDate(DateTime { year, month, day, hour, minute, second });[m
+     const double delta_days = t - sat.epoch();[m
+ [m
+[31m-    // Calculate the position and velocity at the chosen time[m
+     StateVector sv;[m
+     const auto err = sat.propagate(t, sv);[m
+     const auto &pos = sv.position, &vel = sv.velocity;[m
+ [m
+[31m-    // Вывод: МКС движется довольно быстро (~ 8 км / с)[m
+[31m-    int distant;[m
+[32m+[m[32m    double distant;[m
+     distant = sqrt( pos[0] * pos[0] + pos[1] * pos[1] + pos[2] * pos[2]);[m
+[31m-    std::cout << "Position [km]: { " << pos[0] << ", " << pos[1] << ", " << pos[2] << " }\n";[m
+[31m-    std::cout << "Speed [km/s]: { " << vel[0] << ", " << vel[1] << ", " << vel[2] << " }\n";[m
+[31m-    std::cout << "distance to the ground - " << distant - 6378 << "\n";[m
+[31m-}[m
+[32m+[m[32m    cout << "Position in  ECI [km]: { " << pos[0] << ", " << pos[1] << ", " << pos[2] << " }\n";[m
+[32m+[m
+[32m+[m[32m    double X, Y, Z;[m
+[32m+[m[32m    double t1 = GMST();[m
+[32m+[m[32m    ECI2ECEF(pos[0], pos[1], pos[2], t1, X, Y, Z, false);[m
+[32m+[m[32m    cout << "Position in ECEF [km]: { " << X << ", " << Y << ", " << Z << " }\n";[m
+ [m
+[32m+[m[32m    cout << "distance to the ground: " << distant - 6378 << " km" << "\n";[m
+[32m+[m[32m    //cout << "Speed in ECI [km/s]: { " << vel[0] << ", " << vel[1] << ", " << vel[2] << " }\n";[m
+[32m+[m[32m    //cout << "speed (abs): " << speed << "\n";[m
+ [m
+[31m-void readFromFile(std::string fileName, std::vector<TLE>& data){[m
+[31m-    std::ifstream inputFile(fileName);[m
+[32m+[m[32m    //коэффициент, преобразующий вектор спутника в вектор подспутниковой проекции на землю[m
+[32m+[m[32m    double k;[m
+[32m+[m[32m    k=sqrt((6378*6378)/((X*X)+(Y*Y)+(Z*Z)));[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mvoid readFromFile(string fileName, vector<TLE>& data){[m
+[32m+[m[32m    ifstream inputFile(fileName);[m
+     if (inputFile.is_open()) {[m
+[31m-        std::string name, line1, line2;[m
+[31m-        while (std::getline(inputFile, name) &&[m
+[31m-               std::getline(inputFile, line1) &&[m
+[31m-               std::getline(inputFile, line2)) {[m
+[32m+[m[32m        string name, line1, line2;[m
+[32m+[m[32m        while (getline(inputFile, name) &&[m
+[32m+[m[32m               getline(inputFile, line1) &&[m
+[32m+[m[32m               getline(inputFile, line2)) {[m
+             TLE newTLE;[m
+             newTLE.satelliteName = name;[m
+             newTLE.line1 = line1;[m
+[36m@@ -109,30 +160,32 @@[m [mvoid readFromFile(std::string fileName, std::vector<TLE>& data){[m
+             data.push_back(newTLE);[m
+ [m
+             // Вывод данных после считывания[m
+[31m-            std::cout << std::endl;[m
+[31m-            std::cout << "Read TLE:" << std::endl;[m
+[31m-            std::cout << "Satellite Name: " << newTLE.satelliteName << std::endl;[m
+[31m-            std::cout << "Line 1: " << newTLE.line1 << std::endl;[m
+[31m-            std::cout << "Line 2: " << newTLE.line2 << std::endl;[m
+[32m+[m[32m            cout << endl;[m
+[32m+[m[32m            cout << "Read TLE:" << endl;[m
+[32m+[m[32m            cout << "Satellite Name: " << newTLE.satelliteName << endl;[m
+[32m+[m[32m            cout << "Line 1: " << newTLE.line1 << endl;[m
+[32m+[m[32m            cout << "Line 2: " << newTLE.line2 << endl;[m
+ [m
+ [m
+[31m-            // Вызов функции ISS_test с TLE-данными[m
+[31m-            ISS_test(newTLE.line1, newTLE.line2);[m
+[32m+[m[32m            // Вызов функции TLE_decoding с TLE-данными[m
+[32m+[m[32m            TLE_decoding(newTLE.line1, newTLE.line2);[m
+         }[m
+         inputFile.close();[m
+     } else {[m
+[31m-        std::cerr << "Unable to open the file." << std::endl;[m
+[32m+[m[32m        cerr << "Unable to open the file." << endl;[m
+     }[m
+ }[m
+ [m
+ int main() {[m
+[31m-    std::vector<TLE> data;[m
+[31m-    std::string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=last-30-days&FORMAT=tle";[m
+[32m+[m[32m    vector<TLE> data;[m
+[32m+[m[32m    //Раскомментировать нужное[m
+[32m+[m[32m    //Запуски за последние 30 дней[m
+[32m+[m[32m    //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=last-30-days&FORMAT=tle";[m
+[32m+[m[32m    //Космические станции[m
+[32m+[m[32m    string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle";[m
+ [m
+[31m-    //std::string url = "https://www.google.com";[m
+[31m-    //char url[] = "http://r4uab.ru/satonline.txt";[m
+     writeInFile(url, "output.txt");[m
+     readFromFile("output.txt", data);[m
+ [m
+     return 0;[m
+[31m-}[m
+[32m+[m[32m}[m
+\ No newline at end of file[m

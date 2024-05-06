@@ -3,10 +3,10 @@
 #include <string>
 #include <curl/curl.h>
 #include <vector>
-#include <cassert>
 #include <perturb/perturb.hpp>
 #include <cmath>
 #include <chrono>
+
 
 #define PI 3.141592653589793
 
@@ -141,17 +141,24 @@ void writeInFile(string url, string outputFile){
     curl_global_cleanup();
 }
 
-double distanceToMIEM(double x, double y, double z){
-    double x_MIEM = 2847.32, y_MIEM = 2177.72, z_MIEM = 5275.34;
+double distance2MIEM(double x, double y, double z){
+    double x_MIEM = 2840.88, y_MIEM = 2172.78, z_MIEM = 5263.38;
 
     double r=sqrt((x_MIEM-x)*(x_MIEM-x) + (y_MIEM-y)*(y_MIEM-y) + (z_MIEM-z)*(z_MIEM-z));
     return r;
 
 }
 
+double Earth_height_in_point(double x, double y, double z){
+    double a = 6378.13649;
+    double b = 6356.75175;
+    double t = sqrt(1.0/((x*x + y*y)/(a*a)+(z*z)/(b*b)));
+    double r = t*sqrt(x*x+y*y+z*z);
+    return r;
+}
+
 void TLE_decoding(string ISS_TLE_1, string ISS_TLE_2 ){
     auto sat = Satellite::from_tle(ISS_TLE_1, ISS_TLE_2);
-    assert(sat.last_error() == Sgp4Error::NONE);
 
     int year, month, day, hour, minute, second;
     now(year, month, day, hour, minute, second);
@@ -161,8 +168,9 @@ void TLE_decoding(string ISS_TLE_1, string ISS_TLE_2 ){
     const auto err = sat.propagate(t, sv);
     const auto &ECI_pos = sv.position, &vel = sv.velocity;
 
-    double distant;
-    distant = sqrt( ECI_pos[0] * ECI_pos[0] + ECI_pos[1] * ECI_pos[1] + ECI_pos[2] * ECI_pos[2]);
+    double distant_to_center;
+    distant_to_center = sqrt(ECI_pos[0] * ECI_pos[0] + ECI_pos[1] * ECI_pos[1] + ECI_pos[2] * ECI_pos[2]);
+
 
     double X, Y, Z;
     double sideralT = GMST();
@@ -174,13 +182,15 @@ void TLE_decoding(string ISS_TLE_1, string ISS_TLE_2 ){
 
     double latitude, longitude;
     ECEF2LLA(X, Y, Z, latitude, longitude);
+    double Earth_height = Earth_height_in_point(X, Y, Z);
 
     cout << "Position in LLA [deg]: { " << latitude*180/PI << ", " << longitude*180/PI << " }\n";
 
-    cout << "Distance to the ground: " << distant - 6378 << " km" << "\n";
+    double distance_to_the_ground = distant_to_center - Earth_height;
+    cout << "Distance to the ground: " << distance_to_the_ground << " km" << "\n";
     //cout << "Speed in ECI [km/s]: { " << vel[0] << ", " << vel[1] << ", " << vel[2] << " }\n";
     //cout << "speed (abs): " << speed << "\n";
-    double r = distanceToMIEM(X, Y, Z);
+    double r = distance2MIEM(X, Y, Z);
     cout << "Distance to MIEM = " << r << "km" << endl;
 
 }
@@ -220,14 +230,15 @@ int main() {
     //Запуски за последние 30 дней
     //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=last-30-days&FORMAT=tle";
     //Космические станции
-    //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle";
+    string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle";
     //GOES
     //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=goes&FORMAT=tle";
     //IRIDIUM
-    string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=iridium-33-debris&FORMAT=tle";
+    //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=iridium-33-debris&FORMAT=tle";
 
     //writeInFile(url, "output.txt");
-    readFromFile("Space_Stations.txt", data);
+    readFromFile("Space_stations.txt", data);
+
 
     return 0;
 }
