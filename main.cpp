@@ -191,7 +191,7 @@ void TLE_decoding(string ISS_TLE_1, string ISS_TLE_2 ){
     //cout << "Speed in ECI [km/s]: { " << vel[0] << ", " << vel[1] << ", " << vel[2] << " }\n";
     //cout << "speed (abs): " << speed << "\n";
     double r = distance2MIEM(X, Y, Z);
-    cout << "Distance to MIEM = " << r << "km" << endl;
+    cout << "Distance to MIEM: " << r << " km" << endl;
 
 }
 
@@ -210,7 +210,7 @@ void readFromFile(string fileName, vector<TLE>& data){
 
             // Вывод данных после считывания
             cout << endl;
-            cout << newTLE.satelliteName << endl;
+            cout << "Name: " << newTLE.satelliteName << endl;
             cout << "Line 1: " << newTLE.line1 << endl;
             cout << "Line 2: " << newTLE.line2 << endl;
 
@@ -223,22 +223,41 @@ void readFromFile(string fileName, vector<TLE>& data){
     }
 }
 
-int main() {
-    vector<TLE> data;
+int main(int argc, char *argv[]) {
+//    cout << 1 << endl;
+//    return 0;
+    if ((string)argv[1] == "update list"){
+        //Раскомментировать нужное:
+        //Запуски за последние 30 дней
+        //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=last-30-days&FORMAT=tle";
+        //Космические станции
+        string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle";
+        //GOES
+        //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=goes&FORMAT=tle";
+        //IRIDIUM
+        //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=iridium-33-debris&FORMAT=tle";
+        writeInFile(url, "output.txt");
+    }
+    if ((string)argv[1] == "listAll"){
+        vector<TLE> data;
 
-    //Раскомментировать нужное:
-    //Запуски за последние 30 дней
-    //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=last-30-days&FORMAT=tle";
-    //Космические станции
-    string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle";
-    //GOES
-    //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=goes&FORMAT=tle";
-    //IRIDIUM
-    //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=iridium-33-debris&FORMAT=tle";
+        //Раскомментировать нужное:
+        //Запуски за последние 30 дней
+        //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=last-30-days&FORMAT=tle";
+        //Космические станции
+        string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle";
+        //GOES
+        //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=goes&FORMAT=tle";
+        //IRIDIUM
+        //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=iridium-33-debris&FORMAT=tle";
 
-    //writeInFile(url, "output.txt");
-    readFromFile("Space_stations.txt", data);
+        //writeInFile(url, "output.txt");
+        //readFromFile("C:/Users/Acer/PycharmProjects/TLE_decoding/Kursach/cmake-build-debug/Space_Stations.txt", data);
+        readFromFile("output.txt", data);
 
+    }else{
+        cout << argv[1] << endl;
+    }
 
     return 0;
 }

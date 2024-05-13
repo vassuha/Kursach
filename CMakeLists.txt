@@ -13,6 +13,7 @@ find_package(CURL REQUIRED)
 include_directories(${CURL_INCLUDE_DIRS})
 
 add_executable(Kursach main.cpp)
+add_link_options(-static -static-libgcc -static-libstdc++)
 
 # Линковка с библиотекой cURL
 target_link_libraries(Kursach ${CURL_LIBRARIES})
