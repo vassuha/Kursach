@@ -19,9 +19,9 @@ struct TLE {
     string line2;
 };
 
-void now(int &year, int &month, int &day, int &hour, int &min, int &sec) {
+void now(int &year, int &month, int &day, int &hour, int &min, int &sec, int offset) {
     auto currentTimePoint = std::chrono::system_clock::now();
-    std::time_t currentTime = std::chrono::system_clock::to_time_t(currentTimePoint);
+    std::time_t currentTime = std::chrono::system_clock::to_time_t(currentTimePoint) + offset*60;
 
     // Преобразование времени в структуру tm
     std::tm *localTime = std::localtime(&currentTime);
@@ -42,9 +42,9 @@ void now(int &year, int &month, int &day, int &hour, int &min, int &sec) {
 //    sec = 0;
 }
 
-double GMST(void){
+double GMST(int offset){
     int year, month, day, hour, min, sec;
-    now(year, month, day, hour, min, sec);
+    now(year, month, day, hour, min, sec, offset);
 
     double dwhole = 367.0*year-int(7*(year+int((month+9)/12))/4)+int(275*month/9)+day-730531.5;
     double dfrac = (hour+min/60.0+sec/3600.0)/24.0;
@@ -60,7 +60,7 @@ double GMST(void){
 
 double GMST2(double JD) {
     int year, month, day, hour, min, sec;
-    now(year, month, day, hour, min, sec);
+    now(year, month, day, hour, min, sec, 0);
     double M = ((((hour-3)*3600.0) + (min*60.0) + sec)/(12.0*3600.0));
     double d = JD - 2451545.0;
     double T = d/36525;
@@ -161,7 +161,7 @@ void TLE_decoding(string ISS_TLE_1, string ISS_TLE_2 ){
     auto sat = Satellite::from_tle(ISS_TLE_1, ISS_TLE_2);
 
     int year, month, day, hour, minute, second;
-    now(year, month, day, hour, minute, second);
+    now(year, month, day, hour, minute, second, 0);
     const auto t = JulianDate(DateTime { year, month, day, hour, minute, (double)second });
     const double delta_days = t - sat.epoch();
     StateVector sv;
@@ -173,7 +173,7 @@ void TLE_decoding(string ISS_TLE_1, string ISS_TLE_2 ){
 
 
     double X, Y, Z;
-    double sideralT = GMST();
+    double sideralT = GMST(0);
     std::cout << "GMST= " << sideralT << std::endl;
     cout << "Position in  ECI [km]: { " << ECI_pos[0] << ", " << ECI_pos[1] << ", " << ECI_pos[2] << " }\n";
 
@@ -185,6 +185,23 @@ void TLE_decoding(string ISS_TLE_1, string ISS_TLE_2 ){
     double Earth_height = Earth_height_in_point(X, Y, Z);
 
     cout << "Position in LLA [deg]: { " << latitude*180/PI << ", " << longitude*180/PI << " }\n";
+
+    for(int offset=-30; offset<30; offset+=1){
+
+        const auto t1 = JulianDate(DateTime { year, month, day, hour, minute, (double)second }) - offset/1440.0;
+        const double delta_days1 = t1 - sat.epoch();
+        StateVector sv1;
+        const auto err1 = sat.propagate(t1, sv1);
+        const auto &ECI_pos1 = sv1.position, &vel1 = sv1.velocity;
+
+        double X1, Y1, Z1;
+        double sideralT1 = GMST(offset);
+        ECI2ECEF(ECI_pos1[0], ECI_pos1[1], ECI_pos1[2], sideralT1, X1, Y1, Z1, false);
+        double latitude1, longitude1;
+        ECEF2LLA(X1, Y1, Z1, latitude1, longitude1);
+
+        cout << "Trajectory in LLA: { " << latitude1*180/PI << ", " << longitude1*180/PI << " }\n";
+    }
 
     double distance_to_the_ground = distant_to_center - Earth_height;
     cout << "Distance to the ground: " << distance_to_the_ground << " km" << "\n";
@@ -254,6 +271,7 @@ int main(int argc, char *argv[]) {
         //writeInFile(url, "output.txt");
         //readFromFile("C:/Users/Acer/PycharmProjects/TLE_decoding/Kursach/cmake-build-debug/Space_Stations.txt", data);
         readFromFile("output.txt", data);
+
     }else{
         cout << argv[1] << endl;
     }

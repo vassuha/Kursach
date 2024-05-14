@@ -5,6 +5,7 @@ set(CMAKE_CXX_COMPILER g++)
 project(Kursach)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_EXE_LINKER_FLAGS "-static")
 
 # Укажите путь к папке с заголовочными файлами cURL
 set(CURL_INCLUDE_DIRS "C:/curl/include")
