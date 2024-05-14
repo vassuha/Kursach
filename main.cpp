@@ -254,7 +254,6 @@ int main(int argc, char *argv[]) {
         //writeInFile(url, "output.txt");
         //readFromFile("C:/Users/Acer/PycharmProjects/TLE_decoding/Kursach/cmake-build-debug/Space_Stations.txt", data);
         readFromFile("output.txt", data);
-
     }else{
         cout << argv[1] << endl;
     }
