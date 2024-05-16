@@ -269,8 +269,9 @@ int main(int argc, char *argv[]) {
         //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=iridium-33-debris&FORMAT=tle";
 
         //writeInFile(url, "output.txt");
-        //readFromFile("C:/Users/Acer/PycharmProjects/TLE_decoding/Kursach/cmake-build-debug/Space_Stations.txt", data);
-        readFromFile("output.txt", data);
+        readFromFile("D:/TLE_decoding/output.txt", data);
+        //readFromFile("output.txt", data);
+        //readFromFile("D:/TLE_decoding/output.txt", data);
 
     }else{
         cout << argv[1] << endl;
