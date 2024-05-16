@@ -243,19 +243,22 @@ void readFromFile(string fileName, vector<TLE>& data){
 int main(int argc, char *argv[]) {
 //    cout << 1 << endl;
 //    return 0;
-    if ((string)argv[1] == "update list"){
+    if ((string)argv[1] == "update"){
         //Раскомментировать нужное:
         //Запуски за последние 30 дней
         //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=last-30-days&FORMAT=tle";
+        writeInFile("https://celestrak.org/NORAD/elements/gp.php?GROUP=last-30-days&FORMAT=tle", "D:/TLE_decoding/Last_30_days.txt");
         //Космические станции
-        string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle";
+        //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle";
+        writeInFile("https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle", "D:/TLE_decoding/Space_stations.txt");
         //GOES
         //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=goes&FORMAT=tle";
+        writeInFile("https://celestrak.org/NORAD/elements/gp.php?GROUP=goes&FORMAT=tle", "D:/TLE_decoding/GOES.txt");
         //IRIDIUM
         //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=iridium-33-debris&FORMAT=tle";
-        writeInFile(url, "output.txt");
-    }
-    if ((string)argv[1] == "listAll"){
+        writeInFile("https://celestrak.org/NORAD/elements/gp.php?GROUP=iridium-33-debris&FORMAT=tle", "D:/TLE_decoding/IRIDIUM.txt");
+
+    }else{
         vector<TLE> data;
 
         //Раскомментировать нужное:
@@ -267,14 +270,27 @@ int main(int argc, char *argv[]) {
         //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=goes&FORMAT=tle";
         //IRIDIUM
         //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=iridium-33-debris&FORMAT=tle";
+        bool flag = false;
+        if((string)argv[1] == "IRIDIUM"){
+            readFromFile("D:/TLE_decoding/IRIDIUM.txt", data);
+            flag = true;
+        }
+        if((string)argv[1] == "Last 30 days") {
+            readFromFile("D:/TLE_decoding/Last_30_days.txt", data);
+            flag = true;
+        }
+        if((string)argv[1] == "GOES") {
+            readFromFile("D:/TLE_decoding/GOES.txt", data);
+            flag = true;
+        }
+        if(!flag){
+            readFromFile("D:/TLE_decoding/Space_stations.txt", data);
+        }
 
         //writeInFile(url, "output.txt");
-        readFromFile("D:/TLE_decoding/output.txt", data);
+        //readFromFile("D:/TLE_decoding/output.txt", data);
         //readFromFile("output.txt", data);
         //readFromFile("D:/TLE_decoding/output.txt", data);
-
-    }else{
-        cout << argv[1] << endl;
     }
 
     return 0;
