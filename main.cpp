@@ -273,23 +273,23 @@ int main(int argc, char *argv[]) {
         //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=iridium-33-debris&FORMAT=tle";
         bool flag = false;
         if((string)argv[1] == "IRIDIUM"){
-            readFromFile("D:/TLE_decoding/IRIDIUM.txt", data);
+            readFromFile("./IRIDIUM.txt", data);
             flag = true;
         }
         if((string)argv[1] == "Last 30 days") {
-            readFromFile("D:/TLE_decoding/Last_30_days.txt", data);
+            readFromFile("./Last_30_days.txt", data);
             flag = true;
         }
         if((string)argv[1] == "GOES") {
-            readFromFile("D:/TLE_decoding/GOES.txt", data);
+            readFromFile("./GOES.txt", data);
             flag = true;
         }
         if((string)argv[1] == "R4uab") {
-            readFromFile("D:/TLE_decoding/R4uab.txt", data);
+            readFromFile("./R4uab.txt", data);
             flag = true;
         }
         if(!flag){
-            readFromFile("D:/TLE_decoding/Space_stations.txt", data);
+            readFromFile("./Space_stations.txt", data);
         }
 
         //writeInFile(url, "output.txt");
