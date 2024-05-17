@@ -247,16 +247,17 @@ int main(int argc, char *argv[]) {
         //Раскомментировать нужное:
         //Запуски за последние 30 дней
         //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=last-30-days&FORMAT=tle";
-        writeInFile("https://celestrak.org/NORAD/elements/gp.php?GROUP=last-30-days&FORMAT=tle", "D:/TLE_decoding/Last_30_days.txt");
+        writeInFile("https://celestrak.org/NORAD/elements/gp.php?GROUP=last-30-days&FORMAT=tle", "./Last_30_days.txt");
         //Космические станции
         //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle";
-        writeInFile("https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle", "D:/TLE_decoding/Space_stations.txt");
+        writeInFile("https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle", "./Space_stations.txt");
         //GOES
         //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=goes&FORMAT=tle";
-        writeInFile("https://celestrak.org/NORAD/elements/gp.php?GROUP=goes&FORMAT=tle", "D:/TLE_decoding/GOES.txt");
+        writeInFile("https://celestrak.org/NORAD/elements/gp.php?GROUP=goes&FORMAT=tle", "./GOES.txt");
         //IRIDIUM
         //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=iridium-33-debris&FORMAT=tle";
-        writeInFile("https://celestrak.org/NORAD/elements/gp.php?GROUP=iridium-33-debris&FORMAT=tle", "D:/TLE_decoding/IRIDIUM.txt");
+        writeInFile("https://celestrak.org/NORAD/elements/gp.php?GROUP=iridium-33-debris&FORMAT=tle", "./IRIDIUM.txt");
+        writeInFile("https://r4uab.ru/satonline.txt", "./R4uab.txt");
 
     }else{
         vector<TLE> data;
@@ -281,6 +282,10 @@ int main(int argc, char *argv[]) {
         }
         if((string)argv[1] == "GOES") {
             readFromFile("D:/TLE_decoding/GOES.txt", data);
+            flag = true;
+        }
+        if((string)argv[1] == "R4uab") {
+            readFromFile("D:/TLE_decoding/R4uab.txt", data);
             flag = true;
         }
         if(!flag){
