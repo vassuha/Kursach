@@ -137,8 +137,8 @@ double Earth_height_in_point(double x, double y, double z){
     return r;
 }
 
-void TLE_decoding(string ISS_TLE_1, string ISS_TLE_2 ){
-    auto sat = Satellite::from_tle(ISS_TLE_1, ISS_TLE_2);
+void TLE_decoding(string TLE_1, string TLE_2 ){
+    auto sat = Satellite::from_tle(TLE_1, TLE_2);
 
     int year, month, day, hour, minute, second;
     now(year, month, day, hour, minute, second, 0);
