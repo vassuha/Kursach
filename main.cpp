@@ -23,7 +23,6 @@ void now(int &year, int &month, int &day, int &hour, int &min, int &sec, int off
     auto currentTimePoint = std::chrono::system_clock::now();
     std::time_t currentTime = std::chrono::system_clock::to_time_t(currentTimePoint) + offset*60;
 
-    // Преобразование времени в структуру tm
     std::tm *localTime = std::localtime(&currentTime);
 
     year = localTime->tm_year + 1900;
@@ -33,13 +32,6 @@ void now(int &year, int &month, int &day, int &hour, int &min, int &sec, int off
     min = localTime->tm_min;
     sec = localTime->tm_sec;
 
-    //Отладка!!!!!!!!!
-//    year = 2000;
-//    month = 5;
-//    day = 3;
-//    hour-=3;
-//    min =10;
-//    sec = 0;
 }
 
 double GMST(int offset){
@@ -57,17 +49,6 @@ double GMST(int offset){
     double t = GMST*PI/180.0;
     return t;
 }
-
-double GMST2(double JD) {
-    int year, month, day, hour, min, sec;
-    now(year, month, day, hour, min, sec, 0);
-    double M = ((((hour-3)*3600.0) + (min*60.0) + sec)/(12.0*3600.0));
-    double d = JD - 2451545.0;
-    double T = d/36525;
-    double S=1.7533685592 + 0.0172027918051 * d + 6.2831853072 * M + 6.7707139 * 0.000001 * T*T - 4.50876 * 0.0000000001 * T*T*T;
-    return S;
-}
-
 
 void ECEF2LLA(double x, double y, double z, double &latitude, double &longitude) {
     latitude = atan(z/(sqrt(x*x + y*y)));
@@ -119,7 +100,6 @@ void writeInFile(string url, string outputFile){
     if(curl) {
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 
-        // Отключение проверки SSL-сертификата
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
 
         string response;
@@ -225,13 +205,11 @@ void readFromFile(string fileName, vector<TLE>& data){
             newTLE.line2 = line2;
             data.push_back(newTLE);
 
-            // Вывод данных после считывания
             cout << endl;
             cout << "Name: " << newTLE.satelliteName << endl;
             cout << "Line 1: " << newTLE.line1 << endl;
             cout << "Line 2: " << newTLE.line2 << endl;
 
-            // Вызов функции TLE_decoding с TLE-данными
             TLE_decoding(newTLE.line1, newTLE.line2);
         }
         inputFile.close();
@@ -241,36 +219,14 @@ void readFromFile(string fileName, vector<TLE>& data){
 }
 
 int main(int argc, char *argv[]) {
-//    cout << 1 << endl;
-//    return 0;
     if ((string)argv[1] == "update"){
-        //Раскомментировать нужное:
-        //Запуски за последние 30 дней
-        //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=last-30-days&FORMAT=tle";
         writeInFile("https://celestrak.org/NORAD/elements/gp.php?GROUP=last-30-days&FORMAT=tle", "./Last_30_days.txt");
-        //Космические станции
-        //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle";
         writeInFile("https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle", "./Space_stations.txt");
-        //GOES
-        //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=goes&FORMAT=tle";
         writeInFile("https://celestrak.org/NORAD/elements/gp.php?GROUP=goes&FORMAT=tle", "./GOES.txt");
-        //IRIDIUM
-        //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=iridium-33-debris&FORMAT=tle";
         writeInFile("https://celestrak.org/NORAD/elements/gp.php?GROUP=iridium-33-debris&FORMAT=tle", "./IRIDIUM.txt");
         writeInFile("https://r4uab.ru/satonline.txt", "./R4uab.txt");
-
     }else{
         vector<TLE> data;
-
-        //Раскомментировать нужное:
-        //Запуски за последние 30 дней
-        //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=last-30-days&FORMAT=tle";
-        //Космические станции
-        string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle";
-        //GOES
-        //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=goes&FORMAT=tle";
-        //IRIDIUM
-        //string url = "https://celestrak.org/NORAD/elements/gp.php?GROUP=iridium-33-debris&FORMAT=tle";
         bool flag = false;
         if((string)argv[1] == "IRIDIUM"){
             readFromFile("./IRIDIUM.txt", data);
@@ -291,12 +247,6 @@ int main(int argc, char *argv[]) {
         if(!flag){
             readFromFile("./Space_stations.txt", data);
         }
-
-        //writeInFile(url, "output.txt");
-        //readFromFile("D:/TLE_decoding/output.txt", data);
-        //readFromFile("output.txt", data);
-        //readFromFile("D:/TLE_decoding/output.txt", data);
     }
-
     return 0;
 }
